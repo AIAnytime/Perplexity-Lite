@@ -71,6 +71,11 @@
         pre{
             white-space: pre-wrap;
         }
+
+        #rawdata {
+            max-height: 250px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -132,18 +137,19 @@
                     const data = await response.json();
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('answer').style.display = 'block';
-                    console.log("data.raw_data:", data.raw_data); // Add this line to check the content
-                    const decodedRawData = JSON.parse(atob(data.raw_data));
+                    console.log("data raw_data:", data.raw_data); // Add this line to check the content
+                    const decodedRawData = atob(data.raw_data);
+                    console.log("decodedRawData:", decodedRawData); // Add this line to check the content
                     const rawdataElement = document.getElementById('rawdata');
 
                     // Clear the existing content (if any) and display the new data
-                    rawdataElement.innerHTML = JSON.stringify(decodedRawData, null, 2);
+                    rawdataElement.innerHTML = `<pre>${JSON.stringify(decodedRawData, null, 2)}</pre>`;
 
                     // const decodedRawData = JSON.parse(atob(data.raw_data));
                     // document.getElementById('rawdata').innerHTML = JSON.stringify(decodedRawData, null, 2);
 
                     // // document.getElementById('rawdata').innerHTML = data.raw_data;
-                    // document.getElementById('result').innerHTML = data.result;
+                    document.getElementById('result').innerHTML = `<b>Result:</b> ${data.desired_output} <br><br><b>URL:</b> ${data.url}`;
                 } else {
                     Swal.fire({
                         icon: 'error',

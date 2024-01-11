@@ -1,8 +1,8 @@
-from langchain import hub 
+from langchain import hub
 from langchain.agents import create_openai_functions_agent
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_community.tools.tavily_search import TavilySearchResults
-import os 
+import os
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.agents import AgentFinish
@@ -30,21 +30,23 @@ agent_runnable = create_openai_functions_agent(llm, tools, prompt)
 
 
 agent = RunnablePassthrough.assign(
-    agent_outcome = agent_runnable
+    agent_outcome=agent_runnable
 )
 
+
 def execute_tools(data):
-  agent_action = data.pop('agent_outcome')
-  tool_to_use = {t.name: t for t in tools}[agent_action.tool]
-  observation = tool_to_use.invoke(agent_action.tool_input)
-  data['intermediate_steps'].append((agent_action, observation))
-  return data
+    agent_action = data.pop('agent_outcome')
+    tool_to_use = {t.name: t for t in tools}[agent_action.tool]
+    observation = tool_to_use.invoke(agent_action.tool_input)
+    data['intermediate_steps'].append((agent_action, observation))
+    return data
+
 
 def should_continue(data):
-  if isinstance(data['agent_outcome'], AgentFinish):
-    return "exit"
-  else:
-    return "continue"
+    if isinstance(data['agent_outcome'], AgentFinish):
+        return "exit"
+    else:
+        return "continue"
 
 
 workflow = Graph()
@@ -55,7 +57,7 @@ workflow.add_node("tools", execute_tools)
 workflow.set_entry_point("agent")
 
 workflow.add_conditional_edges(
-    "agent", #start node
+    "agent",  # start node
     should_continue,
     {
         "continue": "tools",
@@ -90,20 +92,28 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
+
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 # Endpoint integrating your workflow
+
+
 @app.post("/process_query")
 async def process_query(query: str = Form(...)):
     intermediate_steps = []
-    raw_data = chain.invoke({"input": query, "intermediate_steps": intermediate_steps})
+    raw_data = chain.invoke(
+        {"input": query, "intermediate_steps": intermediate_steps})
     encoded_raw_data = base64.b64encode(str(raw_data).encode()).decode()
-
-    return JSONResponse(content={"raw_data": encoded_raw_data})
+    print(raw_data)
+    # Extract the desired output
+    desired_output = raw_data["agent_outcome"].return_values['output']
+    print(desired_output)
+    # Extract the URL
+    # Since the URL is in a list within a list, we navigate accordingly
+    url = raw_data["intermediate_steps"][0][1][0]["url"]
+    return JSONResponse(content={"raw_data": encoded_raw_data, "desired_output": desired_output, "url": url})
     # serializable_raw_data = make_serializable(raw_data)
     # return JSONResponse(content={"raw_data": json.dumps(raw_data)})
     # #return JSONResponse(content=jsonable_encoder(result))
-
-
